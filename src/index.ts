@@ -31,15 +31,20 @@ import {
   type ConsolidatedToolDef,
   type DispatcherContext,
 } from "./tools/dispatcher.js";
+import { createDiffTool, type CustomToolDef } from "./tools/diff.js";
 import { pullRequestTool } from "./tools/pullrequest.js";
 import { repositoryTool } from "./tools/repository.js";
 
-const ALL_TOOLS: ConsolidatedToolDef[] = [pullRequestTool, repositoryTool];
+const ALL_CONSOLIDATED_TOOLS: ConsolidatedToolDef[] = [
+  pullRequestTool,
+  repositoryTool,
+];
 
 // Map tool name → category for env-var filtering.
 const TOOL_CATEGORY: Record<string, string> = {
   bitbucket_pullrequest: "pullrequest",
   bitbucket_repository: "repository",
+  bitbucket_diff: "diff",
 };
 
 async function main(): Promise<number> {
@@ -67,14 +72,24 @@ async function main(): Promise<number> {
   // Cleanup stale session dirs at startup (best-effort).
   await sandbox.cleanupStaleSessions().catch(() => {});
 
+  // Build the bitbucket_diff custom tool (separate dispatch path —
+  // doesn't fit the consolidated-tool shape because get_* and grep
+  // read from the diff cache, not the operations manifest).
+  const diffTool = createDiffTool({ config, client });
+
   // Filter tools by enabledCategories (whitelist; empty = all on).
-  const enabledTools: ConsolidatedToolDef[] =
-    config.toolFilter.enabledCategories.length === 0
-      ? ALL_TOOLS
-      : ALL_TOOLS.filter((t) => {
-          const cat = TOOL_CATEGORY[t.name];
-          return cat && config.toolFilter.enabledCategories.includes(cat);
-        });
+  const categoryEnabled = (toolName: string): boolean => {
+    if (config.toolFilter.enabledCategories.length === 0) return true;
+    const cat = TOOL_CATEGORY[toolName];
+    return Boolean(cat && config.toolFilter.enabledCategories.includes(cat));
+  };
+
+  const enabledConsolidatedTools = ALL_CONSOLIDATED_TOOLS.filter((t) =>
+    categoryEnabled(t.name),
+  );
+  const enabledCustomTools: CustomToolDef[] = categoryEnabled(diffTool.name)
+    ? [diffTool]
+    : [];
 
   // Default-workspace injection: tools accept an optional `workspace`
   // override but most callers will rely on BITBUCKET_WORKSPACE. The
@@ -103,40 +118,70 @@ async function main(): Promise<number> {
   );
 
   server.setRequestHandler(ListToolsRequestSchema, async () => ({
-    tools: enabledTools.map((t) => ({
-      name: t.name,
-      description: t.description,
-      inputSchema: buildInputSchema(t),
-    })),
+    tools: [
+      ...enabledConsolidatedTools.map((t) => ({
+        name: t.name,
+        description: t.description,
+        inputSchema: buildInputSchema(t),
+      })),
+      ...enabledCustomTools.map((t) => ({
+        name: t.name,
+        description: t.description,
+        inputSchema: t.inputSchema,
+      })),
+    ],
   }));
 
   server.setRequestHandler(CallToolRequestSchema, async (req) => {
-    const tool = enabledTools.find((t) => t.name === req.params.name);
-    if (!tool) {
-      return {
-        isError: true,
-        content: [
-          {
-            type: "text",
-            text: `Unknown tool: ${req.params.name}. Enabled: ${enabledTools.map((t) => t.name).join(", ")}`,
-          },
-        ],
-      };
+    const args = req.params.arguments ?? {};
+
+    const consolidated = enabledConsolidatedTools.find(
+      (t) => t.name === req.params.name,
+    );
+    if (consolidated) {
+      try {
+        const dispatched = await dispatch(consolidated, args, ctx);
+        return {
+          content: [{ type: "text", text: JSON.stringify(dispatched.result) }],
+        };
+      } catch (err) {
+        const e = err as Error;
+        return {
+          isError: true,
+          content: [{ type: "text", text: `${e.name}: ${e.message}` }],
+        };
+      }
     }
-    try {
-      const dispatched = await dispatch(tool, req.params.arguments ?? {}, ctx);
-      return {
-        content: [{ type: "text", text: JSON.stringify(dispatched.result) }],
-      };
-    } catch (err) {
-      const e = err as Error;
-      return {
-        isError: true,
-        content: [
-          { type: "text", text: `${e.name}: ${e.message}` },
-        ],
-      };
+
+    const custom = enabledCustomTools.find((t) => t.name === req.params.name);
+    if (custom) {
+      try {
+        const result = await custom.handler(args);
+        return {
+          content: [{ type: "text", text: JSON.stringify(result) }],
+        };
+      } catch (err) {
+        const e = err as Error;
+        return {
+          isError: true,
+          content: [{ type: "text", text: `${e.name}: ${e.message}` }],
+        };
+      }
     }
+
+    const enabledNames = [
+      ...enabledConsolidatedTools.map((t) => t.name),
+      ...enabledCustomTools.map((t) => t.name),
+    ];
+    return {
+      isError: true,
+      content: [
+        {
+          type: "text",
+          text: `Unknown tool: ${req.params.name}. Enabled: ${enabledNames.join(", ")}`,
+        },
+      ],
+    };
   });
 
   const transport = new StdioServerTransport();

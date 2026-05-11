@@ -53,6 +53,20 @@ export class BitbucketClient implements Client {
   async get(path: string, queryParams?: QueryParams): Promise<unknown> {
     return this.request({ method: "GET", path, queryParams });
   }
+
+  // Variant for endpoints that return text/plain (e.g. /diff). Always
+  // returns the raw response body as a string; doesn't try to parse
+  // as JSON. Throws BitbucketApiError on non-2xx (best-effort JSON
+  // body decode for the error path).
+  async getText(path: string, queryParams?: QueryParams): Promise<string> {
+    return this.request({
+      method: "GET",
+      path,
+      queryParams,
+      accept: "text/plain",
+      raw: true,
+    }) as Promise<string>;
+  }
   async post(
     path: string,
     body?: unknown,
@@ -102,11 +116,16 @@ export class BitbucketClient implements Client {
     path: string;
     queryParams?: QueryParams;
     body?: unknown;
+    // When set, override the Accept header (default "application/json").
+    accept?: string;
+    // When true, return the raw response text on success instead of
+    // parsing as JSON. Used by getText() for /diff endpoints.
+    raw?: boolean;
   }): Promise<unknown> {
     const url = this.buildUrl(opts.path, opts.queryParams);
     const headers: Record<string, string> = {
       Authorization: this.authHeader(),
-      Accept: "application/json",
+      Accept: opts.accept ?? "application/json",
       "User-Agent": this.userAgent,
     };
     let bodyPayload: string | undefined;
@@ -124,12 +143,11 @@ export class BitbucketClient implements Client {
     const text = await res.body.text();
 
     if (statusCode === 204) {
-      return {};
+      return opts.raw ? "" : {};
     }
 
-    // Bitbucket sometimes returns text on errors (e.g. 401 HTML
-    // login pages from the legacy site). Try JSON first; fall back to
-    // raw text in the error path.
+    // Best-effort JSON parse for the error path even when raw=true,
+    // so we can surface a structured error message.
     let parsed: unknown = undefined;
     let parseError: Error | null = null;
     if (text) {
@@ -152,9 +170,11 @@ export class BitbucketClient implements Client {
       throw new BitbucketApiError(msg, statusCode, errResp);
     }
 
-    // Successful non-JSON response (rare — diff endpoints return
-    // text/plain, but we don't reach this path for those because the
-    // diff tool layer fetches them directly with its own Accept header).
+    // raw mode: return the body verbatim regardless of content type.
+    if (opts.raw) {
+      return text;
+    }
+    // Successful non-JSON response (rare for JSON endpoints).
     if (parseError) {
       return text;
     }
