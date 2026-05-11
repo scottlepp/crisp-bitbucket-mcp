@@ -6,11 +6,12 @@
 import { z } from "zod";
 
 import type { ConsolidatedToolDef } from "./dispatcher.js";
+import { positiveInt } from "./schemas.js";
 
 const GetSchema = z.object({
   workspace: z.string().optional(),
   repo_slug: z.string().describe("Repository slug"),
-  pr_id: z.coerce.number().int().positive().describe("Pull request id"),
+  pr_id: positiveInt.describe("Pull request id (number or numeric string, e.g. 39636 or \"39636\")"),
   fields: z
     .string()
     .optional()
@@ -38,12 +39,9 @@ const ListSchema = z.object({
     .describe(
       "Sort field. Prefix with `-` for descending. Default `-updated_on`.",
     ),
-  page: z.coerce.number().int().positive().optional(),
-  pagelen: z.coerce
-    .number()
-    .int()
-    .positive()
-    .max(50)
+  page: positiveInt.optional(),
+  pagelen: positiveInt
+    .pipe(z.number().max(50))
     .optional()
     .describe("Items per page (max 50; default 10)"),
 });

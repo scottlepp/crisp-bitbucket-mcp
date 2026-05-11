@@ -18,6 +18,7 @@ import { createDiffCache, encodeHandle, decodeHandle, type DiffHandle, type Diff
 import { applyExcludes } from "../core/diff/excludes.js";
 import { getFileFromDiff, getFilesByGlob, grepDiff } from "../core/diff/drill-ins.js";
 import type { FileTreeNode, ParsedDiff } from "../core/diff/types.js";
+import { positiveInt, nonNegativeInt } from "./schemas.js";
 
 // --- Tool definition --------------------------------------------------
 
@@ -47,7 +48,7 @@ export interface GetDiffResult {
 const GetSchema = z.object({
   workspace: z.string().optional(),
   repo_slug: z.string().describe("Repository slug"),
-  pr_id: z.coerce.number().int().positive().describe("Pull request id"),
+  pr_id: positiveInt.describe("Pull request id (number or numeric string, e.g. 39636 or \"39636\")"),
   include_generated: z
     .boolean()
     .optional()
@@ -69,10 +70,7 @@ const GetSchema = z.object({
 const GetFileSchema = z.object({
   diff_handle: z.string().describe("Handle returned by `get` (encodes pr@head_sha)."),
   path: z.string().describe("File path to fetch hunks for"),
-  max_lines: z
-    .number()
-    .int()
-    .positive()
+  max_lines: positiveInt
     .optional()
     .describe("Cap total hunk lines returned. Defaults per-extension (yml/json:200, md:300, source:500, lock:50)."),
 });
@@ -80,10 +78,7 @@ const GetFileSchema = z.object({
 const GetFilesSchema = z.object({
   diff_handle: z.string(),
   glob: z.string().describe('Glob pattern, e.g. "src/**/*.ts"'),
-  max_lines_per_file: z
-    .number()
-    .int()
-    .positive()
+  max_lines_per_file: positiveInt
     .optional()
     .describe("Override per-extension cap for each matched file."),
 });
@@ -95,16 +90,10 @@ const GrepSchema = z.object({
     .describe(
       "Search pattern. Supports literal substring, regex syntax (compiled if it contains metacharacters), or explicit /.../flags form.",
     ),
-  context_lines: z
-    .number()
-    .int()
-    .nonnegative()
+  context_lines: nonNegativeInt
     .optional()
     .describe("Number of hunk lines before/after each match. Default 2."),
-  max_matches: z
-    .number()
-    .int()
-    .positive()
+  max_matches: positiveInt
     .optional()
     .describe("Stop after this many matches. Default 50."),
 });

@@ -5,6 +5,7 @@
 import { z } from "zod";
 
 import type { ConsolidatedToolDef } from "./dispatcher.js";
+import { positiveInt } from "./schemas.js";
 
 const GetSchema = z.object({
   workspace: z.string().optional(),
@@ -24,12 +25,9 @@ const ListSchema = z.object({
     .describe(
       "Filter to repos where the authenticated user has this role or higher",
     ),
-  page: z.coerce.number().int().positive().optional(),
-  pagelen: z.coerce
-    .number()
-    .int()
-    .positive()
-    .max(100)
+  page: positiveInt.optional(),
+  pagelen: positiveInt
+    .pipe(z.number().max(100))
     .optional()
     .describe("Items per page (max 100; default 10)"),
 });
