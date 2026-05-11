@@ -1,5 +1,5 @@
 {
-  "name": "@scottlepp/bitbucket-mcp",
+  "name": "@scottlepp/crisp-bitbucket-mcp",
   "version": "0.1.0",
   "description": "Token-efficient MCP server for Bitbucket Cloud. Handle-based diffs, consolidated tools, code-api mode.",
   "type": "module",

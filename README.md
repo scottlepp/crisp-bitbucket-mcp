@@ -1,6 +1,6 @@
-# @scottlepp/bitbucket-mcp
+# @scottlepp/crisp-bitbucket-mcp
 
-Token-efficient MCP server for Bitbucket Cloud.
+Crisp, token-efficient MCP server for Bitbucket Cloud.
 
 Built on [`@scottlepp/mcp-toolkit`](https://github.com/scottlepp/mcp-toolkit). Companion to [`jira-mcp`](https://github.com/scottlepp/jira-mcp) and [`confluence-mcp`](https://github.com/scottlepp/confluence-mcp).
 
@@ -19,7 +19,7 @@ This server fixes that. Key patterns:
 
 ## Status
 
-Phase 1 — early development. Not yet published. See [`/Users/slepper/.claude/plans/we-are-currently-using-deep-gosling.md`](../.claude/plans/we-are-currently-using-deep-gosling.md) for the build plan.
+Phase 2 — early development. Not yet published. See [`/Users/slepper/.claude/plans/we-are-currently-using-deep-gosling.md`](../.claude/plans/we-are-currently-using-deep-gosling.md) for the build plan.
 
 ## License
 

@@ -46,7 +46,7 @@ export function decodeHandle(s: string): DiffHandle | null {
 }
 
 export interface DiffCacheOpts {
-  // Forwarded to createPageCache. Defaults to "bitbucket-mcp-diffs".
+  // Forwarded to createPageCache. Defaults to "crisp-bitbucket-mcp-diffs".
   rootName?: string;
   // Override the full root path (tests pass a tmpdir).
   rootDir?: string;
@@ -76,7 +76,7 @@ export interface DiffCacheInstance {
 
 export function createDiffCache(opts: DiffCacheOpts = {}): DiffCacheInstance {
   const pc: PageCacheInstance = createPageCache({
-    rootName: opts.rootName ?? "bitbucket-mcp-diffs",
+    rootName: opts.rootName ?? "crisp-bitbucket-mcp-diffs",
     rootDir: opts.rootDir,
     ttlMs: opts.ttlMs,
     // 25 MB default for diffs; can be overridden per-call site.

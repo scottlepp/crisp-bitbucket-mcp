@@ -47,7 +47,7 @@ export class BitbucketClient implements Client {
   constructor(opts: BitbucketClientOpts) {
     this.auth = opts.auth;
     this.apiBase = opts.apiBase ?? API_BASE;
-    this.userAgent = opts.userAgent ?? "scottlepp-bitbucket-mcp/0.1";
+    this.userAgent = opts.userAgent ?? "scottlepp-crisp-bitbucket-mcp/0.1";
   }
 
   async get(path: string, queryParams?: QueryParams): Promise<unknown> {
