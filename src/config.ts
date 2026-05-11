@@ -18,11 +18,16 @@ export type BitbucketAuth =
   | { kind: "app-password"; username: string; password: string }
   | { kind: "api-token"; token: string };
 
+export const DEFAULT_API_BASE = "https://api.bitbucket.org/2.0";
+
 export interface BitbucketConfig {
   workspace: string;
   auth: BitbucketAuth;
   toolMode: ToolMode;
   toolFilter: ToolFilterConfig;
+  // API base URL. Defaults to public Bitbucket Cloud; override via
+  // BITBUCKET_URL (e.g., for staging mirrors or fixture servers).
+  apiBase: string;
   // Optional knobs (lifted to fields so tests can override).
   bodyInlineLimit: number;
   diffDefaultMaxLines: number;
@@ -115,11 +120,15 @@ export function getConfig(
     stderr,
   });
 
+  const apiBaseRaw = process.env.BITBUCKET_URL?.trim();
+  const apiBase = (apiBaseRaw && apiBaseRaw.length > 0 ? apiBaseRaw : DEFAULT_API_BASE).replace(/\/+$/, "");
+
   return {
     workspace,
     auth,
     toolMode,
     toolFilter,
+    apiBase,
     bodyInlineLimit: intOr(process.env.BITBUCKET_BODY_INLINE_LIMIT, 4000),
     diffDefaultMaxLines: intOr(process.env.BITBUCKET_DIFF_DEFAULT_MAX_LINES, 500),
     cacheTtlHours: intOr(process.env.BITBUCKET_CACHE_TTL_HOURS, 24),

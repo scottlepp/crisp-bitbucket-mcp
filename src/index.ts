@@ -47,13 +47,13 @@ const TOOL_CATEGORY: Record<string, string> = {
   bitbucket_diff: "diff",
 };
 
-async function main(): Promise<number> {
+async function main(): Promise<void> {
   let config: BitbucketConfig;
   try {
     config = getConfig();
   } catch (err) {
     process.stderr.write(`bitbucket-mcp: ${(err as Error).message}\n`);
-    return 1;
+    process.exit(1);
   }
 
   if (config.toolMode === "code-api") {
@@ -63,7 +63,7 @@ async function main(): Promise<number> {
     );
   }
 
-  const client = new BitbucketClient({ auth: config.auth });
+  const client = new BitbucketClient({ auth: config.auth, apiBase: config.apiBase });
   const sandbox = createSandbox({
     rootName: "bitbucket-mcp",
     staleMs: config.cacheTtlHours * 60 * 60 * 1000,
@@ -186,13 +186,12 @@ async function main(): Promise<number> {
 
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  return 0;
+  process.stderr.write(
+    `bitbucket-mcp: stdio server ready (mode=${config.toolMode}, tools=${enabledConsolidatedTools.length + enabledCustomTools.length})\n`,
+  );
 }
 
-void main().then(
-  (code) => process.exit(code),
-  (err) => {
-    process.stderr.write(`bitbucket-mcp: unexpected error: ${(err as Error).stack ?? err}\n`);
-    process.exit(1);
-  },
-);
+main().catch((err) => {
+  process.stderr.write(`bitbucket-mcp: unexpected error: ${(err as Error).stack ?? err}\n`);
+  process.exit(1);
+});

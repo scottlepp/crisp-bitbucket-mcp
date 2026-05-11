@@ -138,6 +138,10 @@ export class BitbucketClient implements Client {
       method: opts.method,
       headers,
       body: bodyPayload,
+      // Bitbucket Cloud's /diff endpoint 302-redirects to a signed
+      // CDN URL. Follow redirects so the response body is the actual
+      // diff, not the redirect notice.
+      maxRedirections: 5,
     });
     const statusCode = res.statusCode;
     const text = await res.body.text();
