@@ -1,0 +1,52 @@
+{
+  "name": "@scottlepp/bitbucket-mcp",
+  "version": "0.1.0",
+  "description": "Token-efficient MCP server for Bitbucket Cloud. Handle-based diffs, consolidated tools, code-api mode.",
+  "type": "module",
+  "bin": {
+    "bitbucket-mcp": "./build/index.js",
+    "bitbucket-cli": "./build/cli/index.js"
+  },
+  "main": "./build/index.js",
+  "files": [
+    "build",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node build/index.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "prepare": "npm run build",
+    "clean": "rm -rf build",
+    "inspector": "npx @modelcontextprotocol/inspector build/index.js"
+  },
+  "keywords": [
+    "mcp",
+    "bitbucket",
+    "atlassian",
+    "model-context-protocol",
+    "ai",
+    "claude",
+    "token-efficient"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@scottlepp/mcp-toolkit": "file:../mcp-toolkit",
+    "dotenv": "^17.4.2",
+    "undici": "^6.25.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.5"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
