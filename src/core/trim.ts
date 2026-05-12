@@ -9,13 +9,19 @@ import { paginatedListSummary, pick } from "@scottlepp/mcp-toolkit/trim";
 
 import type {
   BitbucketAccount,
+  BitbucketActivityEntry,
   BitbucketBranchRef,
   BitbucketComment,
   BitbucketCommit,
   BitbucketParticipant,
   BitbucketPaginated,
+  BitbucketPipelineRun,
+  BitbucketPipelineStep,
   BitbucketPullRequest,
   BitbucketRepository,
+  BitbucketTask,
+  BitbucketWorkspace,
+  BitbucketWorkspaceMembership,
 } from "../types/bitbucket.js";
 
 // --- Account ----------------------------------------------------------
@@ -383,6 +389,512 @@ export function commentListSummary(raw: unknown): CommentListSummary {
     pagelen: r.pagelen,
     next: r.next,
     values: (r.values ?? []).map(commentRow),
+  };
+}
+
+// --- Workspace --------------------------------------------------------
+
+export interface WorkspaceSummary {
+  uuid: string;
+  slug: string;
+  name: string;
+  is_private: boolean;
+  created_on: string;
+}
+
+export function workspaceSummary(w: BitbucketWorkspace): WorkspaceSummary {
+  return pick(w, ["uuid", "slug", "name", "is_private", "created_on"]);
+}
+
+export interface WorkspaceListSummary {
+  total?: number;
+  page?: number;
+  pagelen?: number;
+  next?: string;
+  values: WorkspaceSummary[];
+}
+
+export function workspaceListSummary(raw: unknown): WorkspaceListSummary {
+  const r = raw as BitbucketPaginated<BitbucketWorkspace>;
+  return {
+    total: r.size,
+    page: r.page,
+    pagelen: r.pagelen,
+    next: r.next,
+    values: (r.values ?? []).map(workspaceSummary),
+  };
+}
+
+// --- Workspace membership --------------------------------------------
+
+export interface WorkspaceMemberRow {
+  uuid: string;
+  display_name: string;
+  nickname?: string;
+  permission?: string;
+}
+
+export function workspaceMemberRow(m: BitbucketWorkspaceMembership): WorkspaceMemberRow {
+  return {
+    uuid: m.user.uuid,
+    display_name: m.user.display_name,
+    nickname: m.user.nickname,
+    permission: m.permission,
+  };
+}
+
+export interface WorkspaceMemberListSummary {
+  total?: number;
+  page?: number;
+  pagelen?: number;
+  next?: string;
+  values: WorkspaceMemberRow[];
+}
+
+export function workspaceMemberListSummary(raw: unknown): WorkspaceMemberListSummary {
+  const r = raw as BitbucketPaginated<BitbucketWorkspaceMembership>;
+  return {
+    total: r.size,
+    page: r.page,
+    pagelen: r.pagelen,
+    next: r.next,
+    values: (r.values ?? []).map(workspaceMemberRow),
+  };
+}
+
+// --- Account (user.search, default-reviewers lists, etc.) ------------
+
+// `accountSummary` is already declared for embedded account references
+// (PR author, comment author). For LIST endpoints we want a row.
+
+export type AccountRow = AccountSummary;
+
+export interface AccountListSummary {
+  total?: number;
+  page?: number;
+  pagelen?: number;
+  next?: string;
+  values: AccountRow[];
+}
+
+export function accountListSummary(raw: unknown): AccountListSummary {
+  const r = raw as BitbucketPaginated<BitbucketAccount>;
+  return {
+    total: r.size,
+    page: r.page,
+    pagelen: r.pagelen,
+    next: r.next,
+    values: (r.values ?? [])
+      .map((a) => accountSummary(a))
+      .filter((a): a is AccountRow => a !== null),
+  };
+}
+
+// --- Pipeline run -----------------------------------------------------
+
+export interface PipelineRunSummary {
+  uuid: string;
+  build_number: number;
+  state: string;            // PENDING | IN_PROGRESS | COMPLETED | HALTED ...
+  result?: string;          // SUCCESSFUL | FAILED | STOPPED | ERROR (when COMPLETED)
+  trigger_type?: string;    // PUSH | SCHEDULE | MANUAL | PULLREQUEST
+  ref_name?: string;
+  target_commit?: string;
+  creator_display_name?: string;
+  created_on?: string;
+  completed_on?: string;
+  duration_in_seconds?: number;
+  build_seconds_used?: number;
+}
+
+export function pipelineRunSummary(r: BitbucketPipelineRun): PipelineRunSummary {
+  return {
+    uuid: r.uuid,
+    build_number: r.build_number,
+    state: r.state?.name ?? "",
+    result: r.state?.result?.name,
+    trigger_type: r.trigger?.name ?? r.trigger?.type,
+    ref_name: r.target?.ref_name,
+    target_commit: r.target?.commit?.hash,
+    creator_display_name: r.creator?.display_name,
+    created_on: r.created_on,
+    completed_on: r.completed_on,
+    duration_in_seconds: r.duration_in_seconds,
+    build_seconds_used: r.build_seconds_used,
+  };
+}
+
+export interface PipelineRunRow {
+  uuid: string;
+  build_number: number;
+  state: string;
+  result?: string;
+  ref_name?: string;
+  created_on?: string;
+  duration_in_seconds?: number;
+}
+
+export function pipelineRunRow(r: BitbucketPipelineRun): PipelineRunRow {
+  return {
+    uuid: r.uuid,
+    build_number: r.build_number,
+    state: r.state?.name ?? "",
+    result: r.state?.result?.name,
+    ref_name: r.target?.ref_name,
+    created_on: r.created_on,
+    duration_in_seconds: r.duration_in_seconds,
+  };
+}
+
+export interface PipelineRunListSummary {
+  total?: number;
+  page?: number;
+  pagelen?: number;
+  next?: string;
+  values: PipelineRunRow[];
+}
+
+export function pipelineRunListSummary(raw: unknown): PipelineRunListSummary {
+  const r = raw as BitbucketPaginated<BitbucketPipelineRun>;
+  return {
+    total: r.size,
+    page: r.page,
+    pagelen: r.pagelen,
+    next: r.next,
+    values: (r.values ?? []).map(pipelineRunRow),
+  };
+}
+
+// --- Pipeline step ----------------------------------------------------
+
+export interface PipelineStepSummary {
+  uuid: string;
+  name?: string;
+  state: string;
+  result?: string;
+  stage?: string;
+  started_on?: string;
+  completed_on?: string;
+  duration_in_seconds?: number;
+  build_seconds_used?: number;
+}
+
+export function pipelineStepSummary(s: BitbucketPipelineStep): PipelineStepSummary {
+  return {
+    uuid: s.uuid,
+    name: s.name,
+    state: s.state?.name ?? "",
+    result: s.state?.result?.name,
+    stage: s.state?.stage?.name,
+    started_on: s.started_on,
+    completed_on: s.completed_on,
+    duration_in_seconds: s.duration_in_seconds,
+    build_seconds_used: s.build_seconds_used,
+  };
+}
+
+export interface PipelineStepRow {
+  uuid: string;
+  name?: string;
+  state: string;
+  result?: string;
+  duration_in_seconds?: number;
+}
+
+export function pipelineStepRow(s: BitbucketPipelineStep): PipelineStepRow {
+  return {
+    uuid: s.uuid,
+    name: s.name,
+    state: s.state?.name ?? "",
+    result: s.state?.result?.name,
+    duration_in_seconds: s.duration_in_seconds,
+  };
+}
+
+export interface PipelineStepListSummary {
+  total?: number;
+  page?: number;
+  pagelen?: number;
+  next?: string;
+  values: PipelineStepRow[];
+}
+
+export function pipelineStepListSummary(raw: unknown): PipelineStepListSummary {
+  const r = raw as BitbucketPaginated<BitbucketPipelineStep>;
+  return {
+    total: r.size,
+    page: r.page,
+    pagelen: r.pagelen,
+    next: r.next,
+    values: (r.values ?? []).map(pipelineStepRow),
+  };
+}
+
+// --- Commit status ----------------------------------------------------
+
+// Bitbucket Cloud's commit-status objects: { state, key, name?, url?,
+// description?, type ('build'), created_on, updated_on }. We project
+// the actionable fields; the URL is short enough to keep, the
+// description goes to a first line.
+
+export interface CommitStatusRow {
+  state: string;  // SUCCESSFUL | INPROGRESS | FAILED | STOPPED
+  key: string;
+  name?: string;
+  url?: string;
+  description_first_line?: string;
+  updated_on?: string;
+}
+
+function pickFirstLine(s: string | undefined): string | undefined {
+  if (!s) return undefined;
+  return s.split("\n", 1)[0];
+}
+
+export function commitStatusRow(s: unknown): CommitStatusRow {
+  const r = s as {
+    state?: string;
+    key?: string;
+    name?: string;
+    url?: string;
+    description?: string;
+    updated_on?: string;
+  };
+  return {
+    state: r.state ?? "",
+    key: r.key ?? "",
+    name: r.name,
+    url: r.url,
+    description_first_line: pickFirstLine(r.description),
+    updated_on: r.updated_on,
+  };
+}
+
+export interface CommitStatusListSummary {
+  total?: number;
+  page?: number;
+  pagelen?: number;
+  next?: string;
+  values: CommitStatusRow[];
+}
+
+export function commitStatusListSummary(raw: unknown): CommitStatusListSummary {
+  const r = raw as BitbucketPaginated<unknown>;
+  return {
+    total: r.size,
+    page: r.page,
+    pagelen: r.pagelen,
+    next: r.next,
+    values: (r.values ?? []).map(commitStatusRow),
+  };
+}
+
+// --- Branching model --------------------------------------------------
+
+// Bitbucket Cloud's branching-model object: `{ branch_types[], development,
+// production?, links }`. branch_types declares the conventions (e.g.
+// feature/<*>, hotfix/<*>) the repo or project enforces.
+// `effective-branching-model` resolves the merged repo + project view.
+
+export interface BranchingModelSummary {
+  branch_types: Array<{ kind: string; prefix: string }>;
+  development?: { name?: string; use_mainbranch?: boolean; branch?: { name: string } };
+  production?: { name?: string; use_mainbranch?: boolean; enabled?: boolean; branch?: { name: string } };
+}
+
+export function branchingModelSummary(raw: unknown): BranchingModelSummary {
+  const r = raw as {
+    branch_types?: Array<{ kind?: string; prefix?: string }>;
+    development?: BranchingModelSummary["development"];
+    production?: BranchingModelSummary["production"];
+  };
+  return {
+    branch_types: (r.branch_types ?? []).map((bt) => ({
+      kind: bt.kind ?? "",
+      prefix: bt.prefix ?? "",
+    })),
+    development: r.development,
+    production: r.production,
+  };
+}
+
+// Settings shape extends the model with `enabled` flags per branch_type.
+export interface BranchingSettingsSummary {
+  branch_types: Array<{ kind: string; prefix: string; enabled: boolean }>;
+  development?: { name?: string; use_mainbranch?: boolean };
+  production?: { name?: string; use_mainbranch?: boolean; enabled?: boolean };
+}
+
+export function branchingSettingsSummary(raw: unknown): BranchingSettingsSummary {
+  const r = raw as {
+    branch_types?: Array<{ kind?: string; prefix?: string; enabled?: boolean }>;
+    development?: BranchingSettingsSummary["development"];
+    production?: BranchingSettingsSummary["production"];
+  };
+  return {
+    branch_types: (r.branch_types ?? []).map((bt) => ({
+      kind: bt.kind ?? "",
+      prefix: bt.prefix ?? "",
+      enabled: bt.enabled ?? true,
+    })),
+    development: r.development,
+    production: r.production,
+  };
+}
+
+// --- Pull request task ------------------------------------------------
+
+export interface TaskSummary {
+  id: number;
+  state: "RESOLVED" | "UNRESOLVED";
+  content: string;
+  creator: AccountSummary | null;
+  created_on: string;
+  updated_on?: string;
+  resolved_on?: string | null;
+  resolved_by?: AccountSummary | null;
+}
+
+export function taskSummary(t: BitbucketTask): TaskSummary {
+  return {
+    id: t.id,
+    state: t.state,
+    content: t.content.raw ?? t.content.markup ?? "",
+    creator: accountSummary(t.creator),
+    created_on: t.created_on,
+    updated_on: t.updated_on,
+    resolved_on: t.resolved_on,
+    resolved_by: t.resolved_by ? accountSummary(t.resolved_by) : undefined,
+  };
+}
+
+export interface TaskRow {
+  id: number;
+  state: "RESOLVED" | "UNRESOLVED";
+  content_first_line: string;
+  creator_display_name?: string;
+  created_on: string;
+}
+
+export function taskRow(t: BitbucketTask): TaskRow {
+  const body = t.content.raw ?? t.content.markup ?? "";
+  return {
+    id: t.id,
+    state: t.state,
+    content_first_line: body.split("\n", 1)[0],
+    creator_display_name: t.creator?.display_name,
+    created_on: t.created_on,
+  };
+}
+
+export interface TaskListSummary {
+  total?: number;
+  page?: number;
+  pagelen?: number;
+  next?: string;
+  values: TaskRow[];
+}
+
+export function taskListSummary(raw: unknown): TaskListSummary {
+  const r = raw as BitbucketPaginated<BitbucketTask>;
+  return {
+    total: r.size,
+    page: r.page,
+    pagelen: r.pagelen,
+    next: r.next,
+    values: (r.values ?? []).map(taskRow),
+  };
+}
+
+// --- Pull request activity --------------------------------------------
+
+// Bitbucket's activity stream is heterogeneous. We flatten each entry
+// into `{kind, date, user_display_name, detail}` — enough to scan the
+// stream without paging through nested shapes. The agent can re-fetch
+// specifics (`comment_get`, `get`) if a detail line catches its eye.
+
+export interface ActivityRow {
+  kind:
+    | "approval"
+    | "unapproval"
+    | "changes_requested"
+    | "changes_request_removal"
+    | "comment"
+    | "update"
+    | "unknown";
+  date?: string;
+  user_display_name?: string;
+  // Short, kind-specific descriptor. For `comment` this is the first
+  // line of the body; for `update` it's the new state; for approval
+  // events it's just "" (the kind itself is the story).
+  detail?: string;
+}
+
+export function activityRow(e: BitbucketActivityEntry): ActivityRow {
+  if (e.approval) {
+    return {
+      kind: "approval",
+      date: e.approval.date,
+      user_display_name: e.approval.user?.display_name,
+    };
+  }
+  if (e.unapproval) {
+    return {
+      kind: "unapproval",
+      date: e.unapproval.date,
+      user_display_name: e.unapproval.user?.display_name,
+    };
+  }
+  if (e.changes_requested) {
+    return {
+      kind: "changes_requested",
+      date: e.changes_requested.date,
+      user_display_name: e.changes_requested.user?.display_name,
+    };
+  }
+  if (e.changes_request_removal) {
+    return {
+      kind: "changes_request_removal",
+      date: e.changes_request_removal.date,
+      user_display_name: e.changes_request_removal.user?.display_name,
+    };
+  }
+  if (e.comment) {
+    const body = e.comment.content.raw ?? e.comment.content.markup ?? "";
+    return {
+      kind: "comment",
+      date: e.comment.created_on,
+      user_display_name: e.comment.user?.display_name,
+      detail: body.split("\n", 1)[0],
+    };
+  }
+  if (e.update) {
+    return {
+      kind: "update",
+      date: e.update.date,
+      user_display_name: e.update.author?.display_name,
+      detail: e.update.state ? `state → ${e.update.state}` : undefined,
+    };
+  }
+  return { kind: "unknown" };
+}
+
+export interface ActivityListSummary {
+  total?: number;
+  page?: number;
+  pagelen?: number;
+  next?: string;
+  values: ActivityRow[];
+}
+
+export function activityListSummary(raw: unknown): ActivityListSummary {
+  const r = raw as BitbucketPaginated<BitbucketActivityEntry>;
+  return {
+    total: r.size,
+    page: r.page,
+    pagelen: r.pagelen,
+    next: r.next,
+    values: (r.values ?? []).map(activityRow),
   };
 }
 

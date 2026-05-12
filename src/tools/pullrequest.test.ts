@@ -8,19 +8,41 @@ import { pullRequestTool } from "./pullrequest.js";
 // reshape to Bitbucket's nested body. Verify the shape is right.
 
 describe("pullRequestTool action schemas", () => {
-  it("declares the cherry-picked Phase 3 action set", () => {
+  it("declares the full Phase 3 action set", () => {
     expect(Object.keys(pullRequestTool.actions).sort()).toEqual(
       [
-        "approve",
-        "comment_add",
-        "comment_delete",
-        "comment_update",
-        "comments_list",
-        "decline",
+        // Read
         "get",
         "list",
-        "merge",
+        "list_pending_review",
+        "activity",
+        "commits",
+        "statuses",
+        // Review writes
+        "approve",
         "unapprove",
+        "merge",
+        "decline",
+        // Draft toggles
+        "convert_to_draft",
+        "publish_draft",
+        // PR meta writes
+        "create",
+        "update",
+        // Comments
+        "comments_list",
+        "comment_get",
+        "comment_add",
+        "comment_update",
+        "comment_delete",
+        "comment_resolve",
+        "comment_reopen",
+        // Tasks
+        "tasks_list",
+        "task_get",
+        "task_create",
+        "task_update",
+        "task_delete",
       ].sort(),
     );
   });

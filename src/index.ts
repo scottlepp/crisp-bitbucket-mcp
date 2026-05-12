@@ -31,13 +31,23 @@ import {
   type ConsolidatedToolDef,
   type DispatcherContext,
 } from "./tools/dispatcher.js";
+import { branchingTool } from "./tools/branching.js";
+import { commitTool } from "./tools/commit.js";
 import { createDiffTool, type CustomToolDef } from "./tools/diff.js";
+import { pipelineTool } from "./tools/pipeline.js";
 import { pullRequestTool } from "./tools/pullrequest.js";
 import { repositoryTool } from "./tools/repository.js";
+import { userTool } from "./tools/user.js";
+import { workspaceTool } from "./tools/workspace.js";
 
 const ALL_CONSOLIDATED_TOOLS: ConsolidatedToolDef[] = [
   pullRequestTool,
   repositoryTool,
+  commitTool,
+  userTool,
+  workspaceTool,
+  pipelineTool,
+  branchingTool,
 ];
 
 // Map tool name → category for env-var filtering.
@@ -45,6 +55,11 @@ const TOOL_CATEGORY: Record<string, string> = {
   bitbucket_pullrequest: "pullrequest",
   bitbucket_repository: "repository",
   bitbucket_diff: "diff",
+  bitbucket_commit: "commit",
+  bitbucket_user: "user",
+  bitbucket_workspace: "workspace",
+  bitbucket_pipeline: "pipeline",
+  bitbucket_branching: "branching",
 };
 
 async function main(): Promise<void> {

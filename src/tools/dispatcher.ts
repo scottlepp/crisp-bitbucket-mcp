@@ -16,14 +16,22 @@ import type { Client } from "@scottlepp/mcp-toolkit/client";
 import type { TrimRegistry } from "@scottlepp/mcp-toolkit/trim-registry";
 
 export interface ToolAction {
-  // Manifest operation name (`pullrequest.get`, etc.).
-  operation: string;
+  // Manifest operation name (`pullrequest.get`, etc.). Required for
+  // standard manifest-dispatched actions; omit when supplying a
+  // custom `handler` instead.
+  operation?: string;
   // Per-action Zod schema. Validates and coerces flat args after the
   // dispatcher strips the `action` discriminator. Optional — actions
   // without input beyond the discriminator pass z.object({}).
   schema?: ZodTypeAny;
   // Per-action description rendered in tool listing JSON.
   description: string;
+  // Custom handler that bypasses the manifest/invokeOperation path.
+  // When present, the dispatcher calls this instead of routing through
+  // the SDK. Used for actions that need text responses, server-side
+  // filtering, or other special handling that the manifest can't
+  // express (e.g. pipeline.step_logs with tail/grep/errors_only).
+  handler?: (args: Record<string, unknown>, ctx: DispatcherContext) => Promise<unknown>;
 }
 
 export interface ConsolidatedToolDef {
@@ -204,6 +212,21 @@ export async function dispatch(
     validated = parsed.data as Record<string, unknown>;
   }
 
+  // Custom handler path: bypass the manifest/invokeOperation flow
+  // entirely. Used for actions that fetch text, run server-side
+  // filters, or otherwise need shapes the manifest can't express.
+  if (action.handler) {
+    const result = await action.handler(validated, ctx);
+    return { result };
+  }
+
+  // Standard manifest dispatch path.
+  if (!action.operation) {
+    throw new DispatchError(
+      `${tool.name}.${actionName}: action has neither \`operation\` nor \`handler\` — one is required`,
+      actionName,
+    );
+  }
   const finalArgs = ctx.preprocess
     ? ctx.preprocess(action.operation, validated)
     : validated;

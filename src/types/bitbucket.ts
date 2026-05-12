@@ -14,6 +14,32 @@ export interface BitbucketAccount {
   account_id?: string;
   nickname?: string;
   type?: "user" | "team";
+  // Fields on /user and /users/{selected_user}; absent on most embedded
+  // account references.
+  created_on?: string;
+  has_2fa_enabled?: boolean;
+  location?: string;
+}
+
+// --- Workspace --------------------------------------------------------
+
+export interface BitbucketWorkspace {
+  uuid: string;
+  slug: string;
+  name: string;
+  is_private: boolean;
+  type?: string;
+  created_on: string;
+  links?: Record<string, unknown>;
+}
+
+export interface BitbucketWorkspaceMembership {
+  // /workspaces/{w}/members rows. `user` is the account; `workspace`
+  // contains slug+name; `permission` is owner|admin|member|collaborator.
+  user: BitbucketAccount;
+  workspace?: { slug: string; name: string };
+  permission?: string;
+  links?: Record<string, unknown>;
 }
 
 // --- Branch reference -------------------------------------------------
@@ -106,6 +132,44 @@ export interface BitbucketComment {
   links?: Record<string, unknown>;
 }
 
+// --- Pull request task -----------------------------------------------
+
+export interface BitbucketTask {
+  id: number;
+  state: "RESOLVED" | "UNRESOLVED";
+  content: { raw?: string; markup?: string; html?: string };
+  creator: BitbucketAccount;
+  created_on: string;
+  updated_on?: string;
+  resolved_on?: string | null;
+  resolved_by?: BitbucketAccount | null;
+  // For inline tasks (rare).
+  comment?: { id: number };
+}
+
+// --- Pull request activity --------------------------------------------
+
+// Activity entries are heterogeneous: each row carries `pull_request`
+// plus one of `approval`, `comment`, `update`, `changes_requested`,
+// `unapproval`, etc. We discriminate at trim time and project a flat
+// row shape.
+
+export interface BitbucketActivityEntry {
+  pull_request?: { id: number; title?: string };
+  approval?: { date: string; user: BitbucketAccount };
+  unapproval?: { date: string; user: BitbucketAccount };
+  changes_requested?: { date: string; user: BitbucketAccount };
+  changes_request_removal?: { date: string; user: BitbucketAccount };
+  comment?: BitbucketComment;
+  update?: {
+    date: string;
+    state?: string;
+    title?: string;
+    description?: string;
+    author?: BitbucketAccount;
+  };
+}
+
 // --- Repository -------------------------------------------------------
 
 export interface BitbucketRepository {
@@ -140,6 +204,55 @@ export interface BitbucketCommit {
   repository?: { uuid: string; name: string; full_name: string };
   summary?: { raw?: string; html?: string };
   links?: Record<string, unknown>;
+}
+
+// --- Pipeline ---------------------------------------------------------
+
+// Bitbucket Cloud pipeline objects nest `state` as either
+// `{name: "IN_PROGRESS"}` or `{name: "COMPLETED", result: {name: "SUCCESSFUL"}}`.
+// We flatten both into `state` (raw name) + `result` (raw name when present)
+// in the trim layer.
+
+export interface BitbucketPipelineState {
+  name: string;
+  type?: string;
+  result?: { name: string; type?: string };
+  stage?: { name: string };
+}
+
+export interface BitbucketPipelineRun {
+  uuid: string;
+  build_number: number;
+  state: BitbucketPipelineState;
+  trigger?: { type?: string; name?: string };
+  target?: {
+    type?: string;
+    ref_name?: string;
+    ref_type?: string;
+    commit?: { hash: string };
+    selector?: { type?: string; pattern?: string };
+  };
+  creator?: BitbucketAccount;
+  created_on?: string;
+  completed_on?: string;
+  duration_in_seconds?: number;
+  build_seconds_used?: number;
+  run_number?: number;
+}
+
+export interface BitbucketPipelineStep {
+  uuid: string;
+  name?: string;
+  state: BitbucketPipelineState;
+  trigger?: { type?: string };
+  started_on?: string;
+  completed_on?: string;
+  duration_in_seconds?: number;
+  build_seconds_used?: number;
+  run_number?: number;
+  pipeline?: { uuid: string };
+  setup_commands?: unknown[];
+  script_commands?: unknown[];
 }
 
 // --- Paginated list envelope -----------------------------------------

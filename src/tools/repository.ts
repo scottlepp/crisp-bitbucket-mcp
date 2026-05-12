@@ -4,12 +4,27 @@
 
 import { z } from "zod";
 
-import type { ConsolidatedToolDef } from "./dispatcher.js";
+import { invokeOperation } from "@scottlepp/mcp-toolkit/manifest";
+
+import type { ConsolidatedToolDef, DispatcherContext } from "./dispatcher.js";
 import { positiveInt } from "./schemas.js";
 
 const GetSchema = z.object({
   workspace: z.string().optional(),
   repo_slug: z.string().describe("Repository slug"),
+});
+
+const DefaultReviewersSchema = z.object({
+  workspace: z.string().optional(),
+  repo_slug: z.string().describe("Repository slug"),
+  effective: z
+    .boolean()
+    .optional()
+    .describe(
+      "When true, return the resolved (repo + project + inherited) list. Default false (repo-level only).",
+    ),
+  page: positiveInt.optional(),
+  pagelen: positiveInt.pipe(z.number().max(100)).optional(),
 });
 
 const ListSchema = z.object({
@@ -32,11 +47,48 @@ const ListSchema = z.object({
     .describe("Items per page (max 100; default 10)"),
 });
 
+// `default_reviewers` dispatches between repo-level and effective
+// (repo + project + inherited) endpoints based on the `effective`
+// flag. A custom handler keeps the user-facing action count down to
+// one — `effective: true` is the override.
+const defaultReviewersHandler = async (
+  args: Record<string, unknown>,
+  ctx: DispatcherContext,
+): Promise<unknown> => {
+  const a = args as {
+    workspace?: string;
+    repo_slug: string;
+    effective?: boolean;
+    page?: number;
+    pagelen?: number;
+  };
+  const operation = a.effective
+    ? "repository.effective_default_reviewers"
+    : "repository.default_reviewers";
+  const finalArgs: Record<string, unknown> = {
+    workspace: a.workspace,
+    repo_slug: a.repo_slug,
+    page: a.page,
+    pagelen: a.pagelen,
+  };
+  const withDefault = ctx.preprocess
+    ? ctx.preprocess(operation, finalArgs)
+    : finalArgs;
+  return invokeOperation(
+    ctx.manifest,
+    ctx.client,
+    operation,
+    withDefault,
+    ctx.trimRegistry,
+    ctx.invokeOptions,
+  );
+};
+
 export const repositoryTool: ConsolidatedToolDef = {
   name: "bitbucket_repository",
   description:
-    "Read repositories. Actions: `get` (one repo), `list` (paginated). " +
-    "Returns compact summaries; full responses are cached server-side.",
+    "Read repositories and default reviewers. Actions: `get`, `list`, " +
+    "`default_reviewers` (pass `effective: true` for the resolved repo + project list).",
   actions: {
     get: {
       operation: "repository.get",
@@ -47,6 +99,12 @@ export const repositoryTool: ConsolidatedToolDef = {
       operation: "repository.list",
       schema: ListSchema,
       description: "List repositories in a workspace (paginated, filterable)",
+    },
+    default_reviewers: {
+      schema: DefaultReviewersSchema,
+      description:
+        "List default reviewers for a repo (pass effective:true for the resolved list)",
+      handler: defaultReviewersHandler,
     },
   },
 };
