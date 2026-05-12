@@ -43,26 +43,106 @@ export interface DispatcherContext {
   preprocess?: (operation: string, args: Record<string, unknown>) => Record<string, unknown>;
 }
 
-// Build the MCP tool input schema as a JSON Schema-ish object:
-// `{ action: enum, ...union of action arg shapes }`. We use a flat
-// discriminated approach (action keys + flat args) because MCP
-// clients render discriminated unions poorly.
-export function buildInputSchema(tool: ConsolidatedToolDef) {
-  const actionNames = Object.keys(tool.actions);
+// Shape compatible with what we hand back to MCP hosts. Loose typing
+// because JSON Schema has many optional fields and we don't enforce
+// here — the JSON is consumed by clients, not by us.
+export interface MergedActionInputSchema {
+  type: "object";
+  properties: Record<string, Record<string, unknown>>;
+  required: string[];
+  additionalProperties: boolean;
+}
+
+// Per-action spec used by mergeActionSchemas. Consolidated tools and
+// the custom diff tool both shape their actions this way.
+export interface ActionSchemaSpec {
+  schema?: ZodTypeAny;
+  description: string;
+}
+
+// Union the per-action Zod schemas into one flat JSON Schema object
+// suitable for an MCP tool's `inputSchema`. Why flat instead of
+// `oneOf` discriminated: MCP clients render unions inconsistently;
+// a flat schema with rich per-field descriptions is more reliably
+// rendered and read by LLMs.
+//
+// Required-ness at the top level is just `action` — per-action
+// required fields are enforced at runtime by the dispatcher's Zod
+// validation. The JSON Schema serves as a *menu* for the LLM, not
+// the source of truth for validation.
+export function mergeActionSchemas(
+  actions: Record<string, ActionSchemaSpec>,
+): MergedActionInputSchema {
+  const actionNames = Object.keys(actions);
+
+  const properties: Record<string, Record<string, unknown>> = {
+    action: {
+      type: "string",
+      enum: actionNames,
+      description: Object.entries(actions)
+        .map(([name, a]) => `\`${name}\`: ${a.description}`)
+        .join(" | "),
+    },
+  };
+
+  // Track which actions reference each field so we can annotate the
+  // description ("used by: get_file, get_files"). Helps the LLM pick
+  // which fields to send for a given action.
+  const fieldToActions: Record<string, string[]> = {};
+
+  for (const [actionName, action] of Object.entries(actions)) {
+    if (!action.schema) continue;
+    let jsonSchema: Record<string, unknown>;
+    try {
+      // `io: "input"` surfaces the *caller-facing* shape, which
+      // matters for actions that use `.transform()` to reshape into
+      // Bitbucket's nested body (e.g. comment_add takes flat
+      // `content` + `inline_path` and reshapes to nested
+      // `{ content: { raw }, inline: { path } }`).
+      jsonSchema = z.toJSONSchema(action.schema, { io: "input" }) as Record<string, unknown>;
+    } catch {
+      // Schema not convertible at all (extremely unusual); skip
+      // silently so a single weird action doesn't break the tool.
+      continue;
+    }
+    const props = jsonSchema.properties as Record<string, Record<string, unknown>> | undefined;
+    if (!props) continue;
+    for (const [fieldName, fieldSchema] of Object.entries(props)) {
+      if (fieldName === "action") continue;
+      if (!fieldToActions[fieldName]) fieldToActions[fieldName] = [];
+      fieldToActions[fieldName].push(actionName);
+      // First action to declare a field wins. In practice fields
+      // shared across actions should have matching definitions (same
+      // type, same description); this is a defensive default rather
+      // than a correctness mechanism.
+      if (!properties[fieldName]) {
+        properties[fieldName] = { ...fieldSchema };
+      }
+    }
+  }
+
+  // Annotate each non-action field with its applicable actions.
+  for (const [field, actionList] of Object.entries(fieldToActions)) {
+    const prop = properties[field];
+    const original = typeof prop.description === "string" ? `${prop.description} ` : "";
+    prop.description = `${original}(used by: ${actionList.join(", ")})`;
+  }
+
   return {
     type: "object",
-    properties: {
-      action: {
-        type: "string",
-        enum: actionNames,
-        description: Object.entries(tool.actions)
-          .map(([name, a]) => `\`${name}\`: ${a.description}`)
-          .join(" | "),
-      },
-    },
+    properties,
     required: ["action"],
-    additionalProperties: true,
-  } as const;
+    // `false` forces the LLM to use declared fields — fewer guesses,
+    // earlier rejection of typos. Runtime Zod still enforces per-
+    // action shape after the dispatcher strips `action`.
+    additionalProperties: false,
+  };
+}
+
+// Build the MCP tool input schema for a consolidated tool. Thin wrapper
+// around mergeActionSchemas; kept as a named export for stability.
+export function buildInputSchema(tool: ConsolidatedToolDef): MergedActionInputSchema {
+  return mergeActionSchemas(tool.actions);
 }
 
 export interface DispatchResult {

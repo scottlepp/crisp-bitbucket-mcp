@@ -13,6 +13,7 @@ import {
   commitListSummary,
   commitSummary,
   genericListSummary,
+  mutationAck,
   pullRequestListSummary,
   pullRequestSummary,
   repositoryListSummary,
@@ -28,6 +29,9 @@ export const trimRegistry = createTrimRegistry({
   commitList: commitListSummary as TrimFn,
   comment: commentSummary as TrimFn,
   commentList: commentListSummary as TrimFn,
+  // Returned by write actions (approve/merge/decline/comment-write).
+  // Compact { ok, id?, state?, title?, approved?, merge_commit? }.
+  ack: mutationAck as TrimFn,
   // Fallback for ops we haven't entity-typed yet.
   list: genericListSummary as TrimFn,
 });

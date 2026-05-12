@@ -56,6 +56,59 @@ describe("buildInputSchema", () => {
     expect(schema.required).toContain("action");
     expect(schema.properties.action.enum).toEqual(["get"]);
   });
+
+  it("hoists per-action fields into top-level properties with descriptions", () => {
+    const multi: ConsolidatedToolDef = {
+      name: "thing",
+      description: "things",
+      actions: {
+        get: {
+          operation: "thing.get",
+          schema: z.object({
+            id: z.number().int().positive().describe("the id"),
+            workspace: z.string().optional(),
+          }),
+          description: "fetch",
+        },
+        list: {
+          operation: "thing.list",
+          schema: z.object({
+            q: z.string().optional().describe("BBQL filter"),
+            workspace: z.string().optional(),
+          }),
+          description: "list",
+        },
+      },
+    };
+    const schema = buildInputSchema(multi);
+    // Action is required, everything else optional at top level.
+    expect(schema.required).toEqual(["action"]);
+    // Per-action fields surfaced.
+    expect(schema.properties.id).toBeDefined();
+    expect(schema.properties.id.type).toBe("integer");
+    expect(schema.properties.q).toBeDefined();
+    // Shared field shows up once, annotated with both actions.
+    expect(schema.properties.workspace).toBeDefined();
+    expect(schema.properties.workspace.description).toMatch(/used by: get, list/);
+    // Action-specific fields are annotated with their single action.
+    expect(schema.properties.id.description).toMatch(/used by: get\)/);
+    expect(schema.properties.q.description).toMatch(/used by: list\)/);
+    // additionalProperties: false forces LLMs to use declared fields.
+    expect(schema.additionalProperties).toBe(false);
+  });
+
+  it("survives an action with no schema", () => {
+    const tool: ConsolidatedToolDef = {
+      name: "thing",
+      description: "things",
+      actions: {
+        get: { operation: "thing.get", description: "fetch" }, // no schema
+      },
+    };
+    const schema = buildInputSchema(tool);
+    expect(schema.properties.action.enum).toEqual(["get"]);
+    expect(Object.keys(schema.properties)).toEqual(["action"]);
+  });
 });
 
 describe("dispatch", () => {

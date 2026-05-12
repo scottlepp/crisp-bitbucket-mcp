@@ -386,6 +386,47 @@ export function commentListSummary(raw: unknown): CommentListSummary {
   };
 }
 
+// --- Mutation ack -----------------------------------------------------
+
+// Trim projection for write actions (approve, merge, decline, comment
+// create/update/delete). Bitbucket's write endpoints return the full
+// resource by default — gigabytes of noise the agent rarely needs.
+// This trim returns the few fields that confirm the mutation
+// succeeded: `id` (which thing was touched), `state` (its new state),
+// and a couple of common signals (`approved`, `merge_commit`). Empty
+// 204 responses get `{ ok: true }`.
+//
+// Pattern lifted from b1ff/atlassian-dc-mcp's `shapePullRequestAck`.
+
+export interface MutationAck {
+  ok: true;
+  id?: number;
+  state?: string;
+  title?: string;
+  approved?: boolean;
+  merge_commit?: string;
+}
+
+export function mutationAck(raw: unknown): MutationAck {
+  if (!raw || typeof raw !== "object") return { ok: true };
+  const r = raw as {
+    id?: unknown;
+    state?: unknown;
+    title?: unknown;
+    approved?: unknown;
+    merge_commit?: { hash?: unknown } | null;
+  };
+  const out: MutationAck = { ok: true };
+  if (typeof r.id === "number") out.id = r.id;
+  if (typeof r.state === "string") out.state = r.state;
+  if (typeof r.title === "string") out.title = r.title;
+  if (typeof r.approved === "boolean") out.approved = r.approved;
+  if (r.merge_commit && typeof r.merge_commit.hash === "string") {
+    out.merge_commit = r.merge_commit.hash;
+  }
+  return out;
+}
+
 // --- Generic list (fallback) ------------------------------------------
 
 // For endpoints we don't have an entity-specific row for, fall back to

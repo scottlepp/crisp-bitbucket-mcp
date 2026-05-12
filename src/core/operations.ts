@@ -56,6 +56,128 @@ export const operations: Manifest = [
     trim: "pullrequestList",
   }),
 
+  // --- PR review write actions ---------------------------------------
+
+  op({
+    name: "pullrequest.approve",
+    description: "Approve a pull request as the authenticated user",
+    verb: "POST",
+    pathTemplate: "/repositories/{workspace}/{repo_slug}/pullrequests/{pr_id}/approve",
+    params: [
+      { name: "workspace", role: "path", required: true },
+      { name: "repo_slug", role: "path", required: true },
+      { name: "pr_id", role: "path", required: true },
+    ],
+    trim: "ack",
+  }),
+
+  op({
+    name: "pullrequest.unapprove",
+    description: "Withdraw approval on a pull request",
+    verb: "DELETE",
+    pathTemplate: "/repositories/{workspace}/{repo_slug}/pullrequests/{pr_id}/approve",
+    params: [
+      { name: "workspace", role: "path", required: true },
+      { name: "repo_slug", role: "path", required: true },
+      { name: "pr_id", role: "path", required: true },
+    ],
+    trim: "ack",
+  }),
+
+  op({
+    name: "pullrequest.merge",
+    description: "Merge a pull request. Body params control merge strategy and source-branch handling.",
+    verb: "POST",
+    pathTemplate: "/repositories/{workspace}/{repo_slug}/pullrequests/{pr_id}/merge",
+    params: [
+      { name: "workspace", role: "path", required: true },
+      { name: "repo_slug", role: "path", required: true },
+      { name: "pr_id", role: "path", required: true },
+      { name: "type", role: "body", description: "Body type marker; default 'pullrequest_merge_parameters'" },
+      { name: "message", role: "body", description: "Override merge commit message" },
+      { name: "close_source_branch", role: "body", description: "Delete the source branch after merge" },
+      { name: "merge_strategy", role: "body", description: "merge_commit | squash | fast_forward" },
+    ],
+    trim: "ack",
+  }),
+
+  op({
+    name: "pullrequest.decline",
+    description: "Decline (close without merging) a pull request",
+    verb: "POST",
+    pathTemplate: "/repositories/{workspace}/{repo_slug}/pullrequests/{pr_id}/decline",
+    params: [
+      { name: "workspace", role: "path", required: true },
+      { name: "repo_slug", role: "path", required: true },
+      { name: "pr_id", role: "path", required: true },
+    ],
+    trim: "ack",
+  }),
+
+  // --- PR comments ---------------------------------------------------
+
+  op({
+    name: "pullrequest.comments_list",
+    description: "List comments on a pull request (top-level + replies, inline + general)",
+    verb: "GET",
+    pathTemplate: "/repositories/{workspace}/{repo_slug}/pullrequests/{pr_id}/comments",
+    params: [
+      { name: "workspace", role: "path", required: true },
+      { name: "repo_slug", role: "path", required: true },
+      { name: "pr_id", role: "path", required: true },
+      { name: "q", role: "query", description: "BBQL filter (e.g. resolution.user.uuid=...)" },
+      { name: "sort", role: "query" },
+      { name: "page", role: "query" },
+      { name: "pagelen", role: "query", description: "Items per page (max 100; default 25)" },
+    ],
+    trim: "commentList",
+  }),
+
+  op({
+    name: "pullrequest.comment_add",
+    description: "Add a comment to a pull request. Top-level by default; pass `parent` for replies, `inline` for line-anchored comments.",
+    verb: "POST",
+    pathTemplate: "/repositories/{workspace}/{repo_slug}/pullrequests/{pr_id}/comments",
+    params: [
+      { name: "workspace", role: "path", required: true },
+      { name: "repo_slug", role: "path", required: true },
+      { name: "pr_id", role: "path", required: true },
+      { name: "content", role: "body", required: true, description: "{ raw: <markdown body> }" },
+      { name: "parent", role: "body", description: "{ id: <comment_id> } — for replies" },
+      { name: "inline", role: "body", description: "{ path, to?, from? } — for line-anchored comments" },
+    ],
+    trim: "ack",
+  }),
+
+  op({
+    name: "pullrequest.comment_update",
+    description: "Edit an existing comment",
+    verb: "PUT",
+    pathTemplate: "/repositories/{workspace}/{repo_slug}/pullrequests/{pr_id}/comments/{comment_id}",
+    params: [
+      { name: "workspace", role: "path", required: true },
+      { name: "repo_slug", role: "path", required: true },
+      { name: "pr_id", role: "path", required: true },
+      { name: "comment_id", role: "path", required: true },
+      { name: "content", role: "body", required: true, description: "{ raw: <markdown body> }" },
+    ],
+    trim: "ack",
+  }),
+
+  op({
+    name: "pullrequest.comment_delete",
+    description: "Delete a comment (Bitbucket leaves a tombstone)",
+    verb: "DELETE",
+    pathTemplate: "/repositories/{workspace}/{repo_slug}/pullrequests/{pr_id}/comments/{comment_id}",
+    params: [
+      { name: "workspace", role: "path", required: true },
+      { name: "repo_slug", role: "path", required: true },
+      { name: "pr_id", role: "path", required: true },
+      { name: "comment_id", role: "path", required: true },
+    ],
+    trim: "ack",
+  }),
+
   // ====================================================================
   // REPOSITORY
   // ====================================================================

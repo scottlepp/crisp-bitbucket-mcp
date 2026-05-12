@@ -18,6 +18,7 @@ import { createDiffCache, encodeHandle, decodeHandle, type DiffHandle, type Diff
 import { applyExcludes } from "../core/diff/excludes.js";
 import { getFileFromDiff, getFilesByGlob, grepDiff } from "../core/diff/drill-ins.js";
 import type { FileTreeNode, ParsedDiff } from "../core/diff/types.js";
+import { mergeActionSchemas } from "./dispatcher.js";
 import { positiveInt, nonNegativeInt } from "./schemas.js";
 
 // --- Tool definition --------------------------------------------------
@@ -25,8 +26,10 @@ import { positiveInt, nonNegativeInt } from "./schemas.js";
 export interface CustomToolDef<TInput = unknown, TOutput = unknown> {
   name: string;
   description: string;
-  // Loose input schema in JSON Schema form (rendered into tools/list).
-  inputSchema: Record<string, unknown>;
+  // Input schema in JSON Schema form (rendered into tools/list).
+  // `object` is permissive enough to accept both hand-written schemas
+  // and `mergeActionSchemas` output without an index signature.
+  inputSchema: object;
   handler(input: TInput): Promise<TOutput>;
 }
 
@@ -281,22 +284,24 @@ export function createDiffTool(opts: CreateDiffToolOpts): CustomToolDef {
       "`get_file(handle, path)`, `get_files(handle, glob)`, and `grep(handle, pattern, context_lines)` " +
       "drill in. Default per-extension line caps. Default exclusions for lock/build/vendor files " +
       "(opt out with include_generated: true).",
-    inputSchema: {
-      type: "object",
-      properties: {
-        action: {
-          type: "string",
-          enum: ["get", "get_file", "get_files", "grep"],
-          description:
-            "`get`: fetch the diff + return file tree + handle. " +
-            "`get_file`: return hunks for one path. " +
-            "`get_files`: return hunks for files matching a glob. " +
-            "`grep`: regex/literal search across all hunks with context_lines.",
-        },
+    inputSchema: mergeActionSchemas({
+      get: {
+        schema: GetSchema,
+        description: "fetch the diff + return file tree + handle",
       },
-      required: ["action"],
-      additionalProperties: true,
-    },
+      get_file: {
+        schema: GetFileSchema,
+        description: "return hunks for one path",
+      },
+      get_files: {
+        schema: GetFilesSchema,
+        description: "return hunks for files matching a glob",
+      },
+      grep: {
+        schema: GrepSchema,
+        description: "regex/literal search across all hunks with context_lines",
+      },
+    }),
     handler,
   };
 }
