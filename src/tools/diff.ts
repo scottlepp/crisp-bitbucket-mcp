@@ -12,14 +12,14 @@
 
 import { z } from "zod";
 
-import type { BitbucketClient } from "../auth/bitbucket-client.js";
+import type { HttpClient } from "../auth/bitbucket-client.js";
 import type { BitbucketConfig } from "../config.js";
 import { createDiffCache, encodeHandle, decodeHandle, type DiffHandle, type DiffCacheInstance } from "../core/diff/cache.js";
 import { applyExcludes } from "../core/diff/excludes.js";
 import { getFileFromDiff, getFilesByGlob, grepDiff } from "../core/diff/drill-ins.js";
 import type { FileTreeNode, ParsedDiff } from "../core/diff/types.js";
-import { mergeActionSchemas } from "./dispatcher.js";
-import { positiveInt, nonNegativeInt } from "./schemas.js";
+import { mergeActionSchemas } from "@scottlepp/mcp-toolkit/tool";
+import { positiveInt, nonNegativeInt } from "@scottlepp/mcp-toolkit/schemas";
 
 // --- Tool definition --------------------------------------------------
 
@@ -105,7 +105,7 @@ const GrepSchema = z.object({
 
 export interface CreateDiffToolOpts {
   config: BitbucketConfig;
-  client: BitbucketClient;
+  client: HttpClient;
   diffCache?: DiffCacheInstance;
 }
 

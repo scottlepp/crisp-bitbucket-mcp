@@ -9,8 +9,8 @@
 
 import { z } from "zod";
 
-import type { ConsolidatedToolDef, DispatcherContext } from "./dispatcher.js";
-import { positiveInt } from "./schemas.js";
+import type { ConsolidatedToolDef, DispatcherContext } from "@scottlepp/mcp-toolkit/tool";
+import { positiveInt } from "@scottlepp/mcp-toolkit/schemas";
 
 // Common identifying fields shared across read + write actions on a
 // specific PR. Composed via z.object spread to keep each per-action

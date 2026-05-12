@@ -10,10 +10,10 @@
 
 import { z } from "zod";
 
-import type { BitbucketClient } from "../auth/bitbucket-client.js";
+import type { HttpClient } from "../auth/bitbucket-client.js";
 import { filterLog } from "../core/pipeline/log-filter.js";
-import type { ConsolidatedToolDef, DispatcherContext, ToolAction } from "./dispatcher.js";
-import { nonNegativeInt, positiveInt } from "./schemas.js";
+import type { ConsolidatedToolDef, DispatcherContext, ToolAction } from "@scottlepp/mcp-toolkit/tool";
+import { nonNegativeInt, positiveInt } from "@scottlepp/mcp-toolkit/schemas";
 
 // Common identifying fields.
 const repoTarget = {
@@ -160,10 +160,11 @@ interface StepLogsArgs {
 
 const stepLogsHandler: ToolAction["handler"] = async (args, ctx: DispatcherContext) => {
   const a = args as unknown as StepLogsArgs;
-  // The BitbucketClient adapter implements getText (text/plain mode).
-  // SDK Client interface doesn't include getText; narrow the cast
-  // here since this handler is bitbucket-specific.
-  const client = ctx.client as unknown as BitbucketClient;
+  // ctx.client is typed as the base SDK Client (no getText). Narrow
+  // to HttpClient — which createBitbucketClient returns — for the
+  // text/plain endpoint. Same cast pattern any consumer needs when
+  // hitting text endpoints.
+  const client = ctx.client as unknown as HttpClient;
   const raw = await client.getText(
     STEP_LOGS_PATH(a.workspace, a.repo_slug, a.pipeline_uuid, a.step_uuid),
   );

@@ -6,8 +6,8 @@ import { z } from "zod";
 
 import { invokeOperation } from "@scottlepp/mcp-toolkit/manifest";
 
-import type { ConsolidatedToolDef, DispatcherContext } from "./dispatcher.js";
-import { positiveInt } from "./schemas.js";
+import type { ConsolidatedToolDef, DispatcherContext } from "@scottlepp/mcp-toolkit/tool";
+import { positiveInt } from "@scottlepp/mcp-toolkit/schemas";
 
 const GetSchema = z.object({
   workspace: z.string().optional(),

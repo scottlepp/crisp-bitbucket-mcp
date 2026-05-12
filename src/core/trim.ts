@@ -6,6 +6,7 @@
 // repository duplicates, rendered.html duplicates of raw markdown.
 
 import { paginatedListSummary, pick } from "@scottlepp/mcp-toolkit/trim";
+import { createMutationAck } from "@scottlepp/mcp-toolkit/mutation-ack";
 
 import type {
   BitbucketAccount,
@@ -903,41 +904,14 @@ export function activityListSummary(raw: unknown): ActivityListSummary {
 // Trim projection for write actions (approve, merge, decline, comment
 // create/update/delete). Bitbucket's write endpoints return the full
 // resource by default — gigabytes of noise the agent rarely needs.
-// This trim returns the few fields that confirm the mutation
-// succeeded: `id` (which thing was touched), `state` (its new state),
-// and a couple of common signals (`approved`, `merge_commit`). Empty
-// 204 responses get `{ ok: true }`.
-//
-// Pattern lifted from b1ff/atlassian-dc-mcp's `shapePullRequestAck`.
+// We project to the few fields that confirm the mutation succeeded,
+// using the SDK's configurable factory. Empty 204 responses collapse
+// to `{ ok: true }`.
 
-export interface MutationAck {
-  ok: true;
-  id?: number;
-  state?: string;
-  title?: string;
-  approved?: boolean;
-  merge_commit?: string;
-}
-
-export function mutationAck(raw: unknown): MutationAck {
-  if (!raw || typeof raw !== "object") return { ok: true };
-  const r = raw as {
-    id?: unknown;
-    state?: unknown;
-    title?: unknown;
-    approved?: unknown;
-    merge_commit?: { hash?: unknown } | null;
-  };
-  const out: MutationAck = { ok: true };
-  if (typeof r.id === "number") out.id = r.id;
-  if (typeof r.state === "string") out.state = r.state;
-  if (typeof r.title === "string") out.title = r.title;
-  if (typeof r.approved === "boolean") out.approved = r.approved;
-  if (r.merge_commit && typeof r.merge_commit.hash === "string") {
-    out.merge_commit = r.merge_commit.hash;
-  }
-  return out;
-}
+export const mutationAck = createMutationAck({
+  pick: ["id", "state", "title", "approved"],
+  liftPaths: { merge_commit: "merge_commit.hash" },
+});
 
 // --- Generic list (fallback) ------------------------------------------
 

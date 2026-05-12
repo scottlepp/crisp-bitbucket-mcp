@@ -13,15 +13,15 @@
 // Phase 4 wires up code-api mode + CLI.
 
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 
 import { createSandbox } from "@scottlepp/mcp-toolkit/sandbox";
+import { startStdioServer } from "@scottlepp/mcp-toolkit/stdio";
 
-import { BitbucketClient } from "./auth/bitbucket-client.js";
+import { createBitbucketClient } from "./auth/bitbucket-client.js";
 import { getConfig, type BitbucketConfig } from "./config.js";
 import { operations } from "./core/operations.js";
 import { trimRegistry } from "./core/trim-registry.js";
@@ -30,7 +30,7 @@ import {
   dispatch,
   type ConsolidatedToolDef,
   type DispatcherContext,
-} from "./tools/dispatcher.js";
+} from "@scottlepp/mcp-toolkit/tool";
 import { branchingTool } from "./tools/branching.js";
 import { commitTool } from "./tools/commit.js";
 import { createDiffTool, type CustomToolDef } from "./tools/diff.js";
@@ -78,7 +78,7 @@ async function main(): Promise<void> {
     );
   }
 
-  const client = new BitbucketClient({ auth: config.auth, apiBase: config.apiBase });
+  const client = createBitbucketClient({ auth: config.auth, apiBase: config.apiBase });
   const sandbox = createSandbox({
     rootName: "crisp-bitbucket-mcp",
     staleMs: config.cacheTtlHours * 60 * 60 * 1000,
@@ -199,11 +199,10 @@ async function main(): Promise<void> {
     };
   });
 
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
-  process.stderr.write(
-    `crisp-bitbucket-mcp: stdio server ready (mode=${config.toolMode}, tools=${enabledConsolidatedTools.length + enabledCustomTools.length})\n`,
-  );
+  await startStdioServer({
+    server,
+    banner: `crisp-bitbucket-mcp: stdio server ready (mode=${config.toolMode}, tools=${enabledConsolidatedTools.length + enabledCustomTools.length})`,
+  });
 }
 
 main().catch((err) => {

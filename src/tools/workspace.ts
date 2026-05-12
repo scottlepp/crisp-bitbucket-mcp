@@ -5,8 +5,8 @@
 
 import { z } from "zod";
 
-import type { ConsolidatedToolDef } from "./dispatcher.js";
-import { positiveInt } from "./schemas.js";
+import type { ConsolidatedToolDef } from "@scottlepp/mcp-toolkit/tool";
+import { positiveInt } from "@scottlepp/mcp-toolkit/schemas";
 
 const ListSchema = z.object({
   q: z
