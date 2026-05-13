@@ -1,5 +1,5 @@
 {
-  "name": "@scottlepp/ultra-bitbucket-mcp",
+  "name": "@scottlepper/ultra-bitbucket-mcp",
   "version": "0.2.0",
   "description": "Token-efficient MCP server for Bitbucket Cloud. Handle-based diffs, consolidated tools, code-api mode.",
   "type": "module",

@@ -34,10 +34,10 @@ This server fixes that:
 ## Install
 
 ```bash
-npm install -g @scottlepp/ultra-bitbucket-mcp
+npm install -g @scottlepper/ultra-bitbucket-mcp
 ```
 
-Or run on-demand via `npx @scottlepp/ultra-bitbucket-mcp`.
+Or run on-demand via `npx @scottlepper/ultra-bitbucket-mcp`.
 
 ## Configure
 
@@ -81,7 +81,7 @@ automatically.
   "mcpServers": {
     "bitbucket": {
       "command": "npx",
-      "args": ["-y", "@scottlepp/ultra-bitbucket-mcp"],
+      "args": ["-y", "@scottlepper/ultra-bitbucket-mcp"],
       "env": {
         "BITBUCKET_WORKSPACE": "my-team",
         "BITBUCKET_API_TOKEN": "…"
@@ -98,7 +98,7 @@ patterns (handle-based diffs, BBQL `q` filters, the `list_pending_review`
 shortcut). Install it into `~/.claude/skills/`:
 
 ```bash
-npm exec --package=@scottlepp/ultra-bitbucket-mcp -- install-skill
+npm exec --package=@scottlepper/ultra-bitbucket-mcp -- install-skill
 # or, from a checkout / global install:
 npm run install-skill
 ```

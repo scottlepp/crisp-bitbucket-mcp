@@ -9,7 +9,7 @@ description: >-
 ---
 # ultra-bitbucket-mcp — dev skill
 
-You are working **on** the `@scottlepp/ultra-bitbucket-mcp` server, not
+You are working **on** the `@scottlepper/ultra-bitbucket-mcp` server, not
 **with** it. This skill orients you to the codebase and its conventions.
 
 ## Three layers

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// @scottlepp/ultra-bitbucket-mcp — token-efficient MCP server for Bitbucket Cloud.
+// @scottlepper/ultra-bitbucket-mcp — token-efficient MCP server for Bitbucket Cloud.
 //
 // Two runtime modes (BITBUCKET_TOOL_MODE):
 //   - classic   (default): expose ~8 consolidated MCP tools backed

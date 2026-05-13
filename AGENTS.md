@@ -6,7 +6,7 @@ Guidance for AI coding agents working in this repo. Mirrors
 
 ## What this repo is
 
-`@scottlepp/ultra-bitbucket-mcp` — a token-efficient MCP server for Bitbucket
+`@scottlepper/ultra-bitbucket-mcp` — a token-efficient MCP server for Bitbucket
 Cloud. Built so an agent can review a 75 KB PR diff in a few hundred tokens
 of context, via server-side diff caching + handle-based drill-ins.
 
