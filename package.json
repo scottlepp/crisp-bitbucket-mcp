@@ -10,6 +10,8 @@
   "main": "./build/index.js",
   "files": [
     "build",
+    "skill",
+    "scripts",
     "README.md",
     "LICENSE"
   ],
@@ -21,7 +23,8 @@
     "test:watch": "vitest",
     "prepare": "npm run build",
     "clean": "rm -rf build",
-    "inspector": "npx @modelcontextprotocol/inspector build/index.js"
+    "inspector": "npx @modelcontextprotocol/inspector build/index.js",
+    "install-skill": "node scripts/install-skill.mjs"
   },
   "keywords": [
     "mcp",
