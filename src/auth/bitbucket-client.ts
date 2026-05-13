@@ -15,7 +15,7 @@ import {
 import type { BitbucketAuth } from "../config.js";
 
 const DEFAULT_API_BASE = "https://api.bitbucket.org/2.0";
-const DEFAULT_USER_AGENT = "scottlepp-crisp-bitbucket-mcp/0.1";
+const DEFAULT_USER_AGENT = "scottlepp-ultra-bitbucket-mcp/0.1";
 
 export interface BitbucketClientOpts {
   auth: BitbucketAuth;

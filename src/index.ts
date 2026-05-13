@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// @scottlepp/crisp-bitbucket-mcp — token-efficient MCP server for Bitbucket Cloud.
+// @scottlepp/ultra-bitbucket-mcp — token-efficient MCP server for Bitbucket Cloud.
 //
 // Two runtime modes (BITBUCKET_TOOL_MODE):
 //   - classic   (default): expose ~8 consolidated MCP tools backed
@@ -67,20 +67,20 @@ async function main(): Promise<void> {
   try {
     config = getConfig();
   } catch (err) {
-    process.stderr.write(`crisp-bitbucket-mcp: ${(err as Error).message}\n`);
+    process.stderr.write(`ultra-bitbucket-mcp: ${(err as Error).message}\n`);
     process.exit(1);
   }
 
   if (config.toolMode === "code-api") {
     process.stderr.write(
-      "crisp-bitbucket-mcp: BITBUCKET_TOOL_MODE=code-api is not yet supported (planned for Phase 4). " +
+      "ultra-bitbucket-mcp: BITBUCKET_TOOL_MODE=code-api is not yet supported (planned for Phase 4). " +
         "Falling back to classic mode.\n",
     );
   }
 
   const client = createBitbucketClient({ auth: config.auth, apiBase: config.apiBase });
   const sandbox = createSandbox({
-    rootName: "crisp-bitbucket-mcp",
+    rootName: "ultra-bitbucket-mcp",
     staleMs: config.cacheTtlHours * 60 * 60 * 1000,
   });
 
@@ -128,7 +128,7 @@ async function main(): Promise<void> {
   // --- MCP server wiring -------------------------------------------
 
   const server = new Server(
-    { name: "crisp-bitbucket-mcp", version: "0.1.0" },
+    { name: "ultra-bitbucket-mcp", version: "0.1.0" },
     { capabilities: { tools: {} } },
   );
 
@@ -201,11 +201,11 @@ async function main(): Promise<void> {
 
   await startStdioServer({
     server,
-    banner: `crisp-bitbucket-mcp: stdio server ready (mode=${config.toolMode}, tools=${enabledConsolidatedTools.length + enabledCustomTools.length})`,
+    banner: `ultra-bitbucket-mcp: stdio server ready (mode=${config.toolMode}, tools=${enabledConsolidatedTools.length + enabledCustomTools.length})`,
   });
 }
 
 main().catch((err) => {
-  process.stderr.write(`crisp-bitbucket-mcp: unexpected error: ${(err as Error).stack ?? err}\n`);
+  process.stderr.write(`ultra-bitbucket-mcp: unexpected error: ${(err as Error).stack ?? err}\n`);
   process.exit(1);
 });

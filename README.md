@@ -1,8 +1,8 @@
-# @scottlepp/crisp-bitbucket-mcp
+# ultra-bitbucket-mcp
 
-Crisp, token-efficient MCP server for Bitbucket Cloud.
+Optimized, low context, token-efficient MCP server for Bitbucket Cloud.
 
-Built on [`@scottlepp/mcp-toolkit`](https://github.com/scottlepp/mcp-toolkit). Companion to [`jira-mcp`](https://github.com/scottlepp/jira-mcp) and [`confluence-mcp`](https://github.com/scottlepp/confluence-mcp).
+Built on [`@scottlepp/mcp-toolkit`](https://github.com/scottlepp/mcp-toolkit).
 
 ## Why
 
@@ -16,10 +16,6 @@ This server fixes that. Key patterns:
 4. **Mutation `ack` projections** — write actions return `{id, version, state}` not full resource bodies.
 5. **Field allowlists everywhere** — trim functions declare what to keep, never what to drop.
 6. **Two runtime modes** — classic (consolidated MCP tools) + code-api (single tool + bundled `bitbucket-cli` binary, ~76× tool-list reduction).
-
-## Status
-
-Phase 2 — early development. Not yet published. See [`/Users/slepper/.claude/plans/we-are-currently-using-deep-gosling.md`](../.claude/plans/we-are-currently-using-deep-gosling.md) for the build plan.
 
 ## License
 

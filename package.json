@@ -1,11 +1,11 @@
 {
-  "name": "@scottlepp/crisp-bitbucket-mcp",
-  "version": "0.1.0",
+  "name": "@scottlepp/ultra-bitbucket-mcp",
+  "version": "0.2.0",
   "description": "Token-efficient MCP server for Bitbucket Cloud. Handle-based diffs, consolidated tools, code-api mode.",
   "type": "module",
   "bin": {
-    "bitbucket-mcp": "./build/index.js",
-    "bitbucket-cli": "./build/cli/index.js"
+    "ultra-bitbucket-mcp": "./build/index.js",
+    "ultra-bitbucket-cli": "./build/cli/index.js"
   },
   "main": "./build/index.js",
   "files": [
@@ -36,7 +36,7 @@
   "license": "MIT",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
-    "@scottlepp/mcp-toolkit": "file:../mcp-toolkit",
+    "@scottlepp/mcp-toolkit": "^0.5.0",
     "dotenv": "^17.4.2",
     "minimatch": "^10.2.5",
     "undici": "^6.25.0",
